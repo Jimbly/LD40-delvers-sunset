@@ -11,6 +11,7 @@ Z.SPRITES = 10;
 Z.BEAMS = 15;
 Z.CHARACTER = 20;
 Z.LASERS = 25;
+Z.UI = 100;
 
 // Virtual viewport for our game logic
 const game_width = 1280;
@@ -35,7 +36,7 @@ export function main(canvas)
   const glov_sprite = glov_engine.glov_sprite;
   const glov_ui = glov_engine.glov_ui;
   const draw_list = glov_engine.draw_list;
-  // const font = glov_engine.font;
+  const font = glov_engine.font;
 
   const loadTexture = glov_sprite.loadTexture.bind(glov_sprite);
   const createSprite = glov_sprite.createSprite.bind(glov_sprite);
@@ -69,14 +70,30 @@ export function main(canvas)
   const LEVEL_H = 14;
 
 
-  const spriteSize = 64;
   function initGraphics() {
     if (sprites.white) {
       return;
     }
 
-    sound_manager.loadSound('test');
-    //loadTexture('avatar.png');
+    // sound_manager.loadSound('pegstep1');
+    // sound_manager.loadSound('pegstep2');
+    // sound_manager.loadSound('pegstep3');
+    // sound_manager.loadSound('pegstep4');
+    sound_manager.loadSound('pegstep5');
+    // sound_manager.loadSound('footstep1');
+    // sound_manager.loadSound('footstep2');
+    // sound_manager.loadSound('footstep3');
+    sound_manager.loadSound('footstep4');
+    // sound_manager.loadSound('footstep5');
+    sound_manager.loadSound('jump');
+    sound_manager.loadSound('jump_land');
+    sound_manager.loadSound('death_spike');
+    sound_manager.loadSound('death_laser');
+    sound_manager.loadSound('death_beam');
+    sound_manager.loadSound('beam_fire');
+    sound_manager.loadSound('beam_charge');
+    sound_manager.loadSound('laser');
+    sound_manager.loadSound('respawn');
 
     sprites.white = createSprite('white', {
       width : 1,
@@ -162,13 +179,23 @@ export function main(canvas)
 
   let character;
   let level;
+  let disabil_index = 0;
   let disabil = {
-    limp: true,
+    limp: false,
     color_blindness: false,
     vertigo: false,
+    deaf: false,
+    amnesia: false,
   };
+  let disabil_flow = [
+    {},
+    { add: ['limp'] },
+    { add: ['vertigo'] },
+    { add: ['color_blindness'] },
+    { add: ['deaf', 'amnesia'], remove: ['vertigo'] },
+  ];
 
-  let level_index = 3;
+  let level_index = 0;
   let level_countdown = 0;
   let vertigo_counter = 0;
 
@@ -180,7 +207,46 @@ export function main(canvas)
     return [b, b, b, color[3]];
   }
 
+  const beyond_zebra = ['yuzz', 'wum', 'um', 'humpf', 'glikk', 'nuh',
+    'snee', 'quan', 'thnad', 'spazz', 'floob', 'zatz', 'jogg', 'flunn', 'yekk', 'vroo'];
+  const titles = [
+    'Introduction',
+    'Spikes',
+    'Moving Danger',
+    'Lasers',
+    // amnesia titles:
+    'The one with the spikes?',
+    'Dangerous',
+    'Look out!',
+    'Tuesday',
+    'Jumpy',
+    'Gimme meds!',
+    'Flursday',
+  ];
+  function randWord(words) {
+    let idx = Math.floor(Math.random() * words.length);
+    return words[idx];
+  }
+
+  let index_map = [0,1,2,3];
+  let did_remap = false;
   function levelInit() {
+    if (level_index === 0 && !did_remap) {
+      index_map = [0,1,2,3];
+      if (disabil.amnesia) {
+        for (let ii = 0; ii < index_map.length - 1; ++ii) {
+          let idx = ii + Math.floor(Math.random() * (index_map.length - ii));
+          let t = index_map[ii];
+          index_map[ii] = index_map[idx];
+          index_map[idx] = t;
+        }
+      }
+    } else if (level_index > 0) {
+      did_remap = false;
+    }
+
+    let eff_level_index = index_map[level_index];
+
     vertigo_counter = 0;
     level_countdown = 0;
     character = {
@@ -194,6 +260,7 @@ export function main(canvas)
     };
     level = {};
     level.timestamp_base = glov_engine.getFrameTimestamp();
+    level.laser_dir = 0;
     level.solids = [
       [0,2, 4,3],
       [6,6, 10,7],
@@ -201,17 +268,18 @@ export function main(canvas)
       [-1,-1, 0, LEVEL_H + 1], // left
       [LEVEL_W,-1, LEVEL_W + 1, LEVEL_H + 1], // right
       [0,LEVEL_H, LEVEL_W, LEVEL_H + 1], // top
+      [5,LEVEL_H - 1, 13, LEVEL_H], // title area on top
       [0,-1, LEVEL_W, 0], // bottom
     ];
     level.dangers = [
       [0,0, 18,1],
     ];
-    if (level_index === 1) {
+    if (eff_level_index === 1) {
       level.solids.push([1,7, 3, 8]);
       level.dangers.push([1,6, 3,7, -1], [7.5,7, 8.5,8]);
     }
     level.lasers = [];
-    if (level_index === 2) {
+    if (eff_level_index === 2) {
       // x, ymid, h, magnitude, bad, yoffs
       level.lasers.push([0.5, 6, 2, 2, 1, 0]);
       level.lasers.push([0.5, 3, 2, 2, 0, 0]);
@@ -223,17 +291,27 @@ export function main(canvas)
       level.lasers.push([12, 7,  2, 2, 0, 0]);
     }
     level.beams = [];
-    if (level_index === 3) {
+    if (eff_level_index === 3) {
       // x, y, slope
       level.beams.push([0,6, -1, 0]);
       level.beams.push([0,10, -1, 0.5]);
       level.beams.push([0,14, -1, 0]);
       level.beams.push([4,14, -1, 0.5]);
-      level.beams.push([8,14, -1, 0]);
-      level.beams.push([12,14, -1, 0.5]);
+      level.beams.push([9,13, -1, 0]);
+      level.beams.push([13,13, -1, 0.5]);
     }
 
     level.exit = [16,10, 17, 12];
+
+    if (disabil.amnesia) {
+      level.index_label = `Level ${randWord(beyond_zebra)} of ${randWord(beyond_zebra)}`;
+      level.title = randWord(titles);
+    } else {
+      level.index_label = `Level ${level_index} of 4`;
+      level.title = titles[level_index];
+    }
+
+    playSound('respawn');
   }
 
   const JUMP_TIME = 0.25;
@@ -280,14 +358,46 @@ export function main(canvas)
 
   function updateDangers(dt) {
     for (let ii = 0; ii < level.lasers.length; ++ii) {
-      level.lasers[ii][5] = Math.sin((glov_engine.getFrameTimestamp() - level.timestamp_base) * 0.002) * level.lasers[ii][3];
+      let old_value = level.lasers[ii][5];
+      let new_value = level.lasers[ii][5] = Math.sin((glov_engine.getFrameTimestamp() - level.timestamp_base) * 0.002 - Math.PI/2) * level.lasers[ii][3];
+      if (ii === 0) {
+        if (level.laser_dir === 0 && old_value < new_value) {
+          level.laser_dir = 1;
+          playSound('laser');
+        } else if (level.laser_dir === 1 && old_value > new_value) {
+          level.laser_dir = 0;
+          playSound('laser');
+        }
+      }
     }
     for (let ii = 0; ii < level.beams.length; ++ii) {
+      let old_value = level.beams[ii][3];
       level.beams[ii][3] += BEAM_CHARGE_SPEED * dt;
       while (level.beams[ii][3] > 1) {
         level.beams[ii][3] -= 1;
       }
+      if (ii === 0) {
+        let new_value = level.beams[ii][3];
+        if (old_value < BEAM_FIRE && new_value >= BEAM_FIRE ||
+          old_value < 0.5 + BEAM_FIRE && new_value >= 0.5 + BEAM_FIRE) {
+          playSound('beam_fire');
+        }
+        if ((old_value > 0.75 || old_value === 0) && new_value < 0.25 ||
+          old_value < 0.5 && new_value >= 0.5) {
+          playSound('beam_charge');
+        }
+      }
     }
+  }
+
+  function playSound(sound) {
+    if (!disabil.deaf) {
+      sound_manager.play(sound);
+    }
+  }
+
+  function playFootstep(peg) {
+    playSound(peg ? 'pegstep5' : 'footstep4');
   }
 
   function doCharacterMotion(dt, dx, dy) {
@@ -307,11 +417,16 @@ export function main(canvas)
     dt *= 0.001; // seconds
 
     let movement_scale = 1;
+    let jump_scale = 1;
     if (disabil.limp) {
-       movement_scale = Math.min(1, Math.sin(character.runloop*(2 * Math.PI) - (Math.PI/2)) * 0.5 + 1);
+       movement_scale = Math.min(1, Math.sin(character.runloop*(2 * Math.PI) + (Math.PI/2)) * 0.5 + 1);
+       jump_scale = Math.min(1, Math.sin(character.runloop*(2 * Math.PI) - (Math.PI/2)) * 0.5 + 1);
     }
 
     let was_on_ground = character.on_ground;
+    if (!was_on_ground) {
+      movement_scale = jump_scale;
+    }
     let desired_horiz_vel = dx * RUN_SPEED;
     let accel = dt * (character.dead ? DEAD_ACCEL : dx ? HORIZ_ACCEL : HORIZ_DECEL);
     let delta = desired_horiz_vel - character.v[0];
@@ -324,9 +439,10 @@ export function main(canvas)
       character.jumping_released = true;
     }
     if (was_on_ground && dy && character.jumping_released) {
-      character.v[1] = dy * JUMP_SPEED * movement_scale;
+      character.v[1] = dy * JUMP_SPEED * jump_scale;
       character.jumping = JUMP_TIME;
       character.jumping_released = false;
+      playSound('jump');
     } else if (character.jumping && dy) {
       if (dt >= character.jumping) {
         let leftover = dt - character.jumping;
@@ -347,8 +463,9 @@ export function main(canvas)
       character.facing = new_facing;
       //character.runloop = 0;
     }
-    if (was_on_ground) {
-      character.runloop += character.facing * horiz_movement * RUN_LOOP_SCALE;
+    if (was_on_ground && !character.dead) {
+      let last_runloop = character.runloop;
+      character.runloop += character.facing * horiz_movement * RUN_LOOP_SCALE * movement_scale;
       while (character.runloop < 0) {
         character.runloop += 1;
       }
@@ -365,6 +482,11 @@ export function main(canvas)
         } else {
           character.runloop = Math.min(1, character.runloop + RUN_LOOP_REST_SPEED * dt);
         }
+      }
+      if (last_runloop < 0.25 && character.runloop >= 0.25 && character.runloop < 0.5) {
+        playFootstep(0);
+      } else if (last_runloop > 0.5 && last_runloop < 0.75 && character.runloop >= 0.75) {
+        playFootstep(disabil.limp ? 1 : 0);
       }
     }
     // horizontal
@@ -398,11 +520,15 @@ export function main(canvas)
         character.on_ground = true;
       }
     }
+    if (character.on_ground && !was_on_ground) {
+      playSound('jump_land');
+    }
     // dangers in final position
     if (!character.exited && !character.dead) {
       for (let ii = 0; ii < level.dangers.length; ++ii) {
         let d = level.dangers[ii];
         if (collide([d[0] + 0.25, d[1], d[2] - 0.25, d[3]])) {
+          playSound('death_spike');
           character.dead = true;
         }
       }
@@ -415,6 +541,7 @@ export function main(canvas)
           if (character.pos[0] < x && character.pos[0] + CHAR_W > x &&
             character.pos[1] + CHAR_H > y && character.pos[1] < y + h)
           {
+          playSound('death_laser');
             character.dead = true;
           }
         }
@@ -423,6 +550,7 @@ export function main(canvas)
         let b = level.beams[ii];
         if (b[3] > 0.5 + BEAM_FIRE) {
           if (util.lineCircleIntersect(b, [b[0] + LEVEL_W, b[1] + LEVEL_W * b[2]], [character.pos[0] + CHAR_W/2, character.pos[1] + CHAR_H/2], CHAR_H/2)) {
+            playSound('death_beam');
             character.dead = true;
           }
         }
@@ -452,12 +580,48 @@ export function main(canvas)
     glov_camera.set2D(glov_camera.x0() - 64, glov_camera.y0(), glov_camera.x1() - 64, glov_camera.y1());
   }
 
+  const TITLE_X = 5 * TILESIZE;
+  const TITLE_Y = 0.25 * TILESIZE;
+  const TITLE_W = 8 * TILESIZE;
+  const TITLE_SIZE = TILESIZE * 0.75;
+  const title_font_style = glov_font.style(null, {
+    outline_width: 2.0,
+    outline_color: 0x800000ff,
+    glow_xoffs: 3.25,
+    glow_yoffs: 3.25,
+    glow_inner: -1.5,
+    glow_outer: 7,
+    glow_color: 0x000000ff,
+  });
+
+  function displayTitles() {
+    font.drawSizedAligned(title_font_style, TITLE_X, TITLE_Y, Z.UI + 1, TITLE_SIZE, glov_font.ALIGN.HCENTER,
+      TITLE_W, TITLE_SIZE, level.index_label);
+    font.drawSizedAligned(title_font_style, TITLE_X, TITLE_Y + TITLE_SIZE, Z.UI + 1, TITLE_SIZE, glov_font.ALIGN.HCENTER,
+      TITLE_W, TITLE_SIZE, level.title);
+  }
+
   function play(dt) {
     defaultCamera();
 
     if (glov_input.keyDownHit(key_codes.R)) {
       playInit(dt);
     }
+
+    if (location.host.indexOf('localhost') !== -1) {
+      if (glov_input.keyDownHit(key_codes.Q)) {
+        level_index--;
+        playInit(dt);
+      }
+      if (glov_input.keyDownHit(key_codes.E)) {
+        character.dead = false;
+        character.exited = true;
+        level_index++;
+        playInit(dt);
+      }
+    }
+
+    displayTitles();
 
     updateDangers(dt);
 
@@ -578,18 +742,6 @@ export function main(canvas)
     } else {
       drawWorldElem(sprites.exit, level.exit);
     }
-
-    // let font_style = glov_font.style(null, {
-    //   outline_width: 1.0,
-    //   outline_color: 0x800000ff,
-    //   glow_xoffs: 3.25,
-    //   glow_yoffs: 3.25,
-    //   glow_inner: -2.5,
-    //   glow_outer: 5,
-    //   glow_color: 0x000000ff,
-    // });
-    // glov_ui.print(font_style, test.character.x, test.character.y + (++font_test_idx * glov_ui.font_height), Z.SPRITES,
-    //   'Outline and Drop Shadow');
 
     if (level_countdown) {
       if (dt >= level_countdown) {
