@@ -47,6 +47,10 @@ export function main(canvas)
   glov_ui.button_height *= 2;
   glov_ui.font_height *= 2;
 
+  if (location.host.indexOf('localhost') !== -1) {
+    sound_manager.sound_on = sound_manager.music_on = false;
+  }
+
   const loadTexture = glov_sprite.loadTexture.bind(glov_sprite);
   const createSprite = glov_sprite.createSprite.bind(glov_sprite);
 
@@ -903,7 +907,7 @@ export function main(canvas)
     }
 
 
-    if (glov_input.keyDownHit(key_codes.R)) {
+    if (glov_input.keyDownHit(key_codes.R) || glov_input.padDownHit(0, pad_codes.Y)) {
       playInit();
     }
 
@@ -1143,7 +1147,7 @@ export function main(canvas)
         x: game_width / 2 - glov_ui.button_width / 2 - 64,
         y,
         text: 'CONTINUE'
-      }) || glov_input.keyDownHit(key_codes.SPACE) || glov_input.keyDownHit(key_codes.RETURN)) {
+      }) || glov_input.keyDownHit(key_codes.SPACE) || glov_input.keyDownHit(key_codes.RETURN) || glov_input.padDownHit(0, pad_codes.A)) {
         level_index = 0;
         playInit();
       }
@@ -1249,12 +1253,117 @@ export function main(canvas)
     game_state = victory;
   }
 
+  const font_style_title = glov_font.style(null, {
+    outline_width: 2.0,
+    outline_color: 0x404040ff,
+    glow_xoffs: 3.25,
+    glow_yoffs: 3.25,
+    glow_inner: -1.5,
+    glow_outer: 7,
+    glow_color: 0xFF0000ff,
+  });
+  const font_style_desc = glov_font.style(null, {
+    outline_width: 2.0,
+    outline_color: 0x202020ff,
+    glow_xoffs: 3.25,
+    glow_yoffs: 3.25,
+    glow_inner: -1.5,
+    glow_outer: 7,
+    glow_color: 0x00000000,
+  });
+  function title(dt) {
+    defaultCamera();
+
+    const font_size = TILESIZE * 1.5;
+
+    let y = TILESIZE * 2;
+    font_style_title.glow_outer = 5 + 5 * Math.sin(glov_engine.getFrameTimestamp() * 0.002);
+    font.drawSizedAligned(font_style_title, -64, y, Z.UI2, font_size, glov_font.ALIGN.HCENTER,
+      game_width, 0, 'Delver\'s Sunset');
+    y += font_size + 40;
+
+    const font_size2 = TILESIZE * 0.5;
+    const font_size3 = font_size2 * 1.2 ;
+    font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size3, glov_font.ALIGN.HCENTER,
+      game_width, 0, 'Jimb Esser - Dashing Strike Games');
+    y += font_size3;
+    font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size3, glov_font.ALIGN.HCENTER,
+      game_width, 0, 'Ludum Dare #40');
+    y += font_size3;
+    font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER,
+      game_width, 0, 'All code, art, sound, and');
+    y += font_size2;
+    font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER,
+      game_width, 0, 'music created in 48 hours.');
+    y += font_size2;
+
+    y += 80;
+    font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size3, glov_font.ALIGN.HCENTER,
+      game_width, 0, 'A simple platformer gets less simple as you');
+    y += font_size3;
+    font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size3, glov_font.ALIGN.HCENTER,
+      game_width, 0, 'are plagued with afflictions and disabilities');
+    y += font_size3;
+
+    y += 40;
+    let y_save = y;
+    let w = game_width / 4;
+    let x = -64 + w / 2;
+    font.drawSizedAligned(font_style_desc, x, y, Z.UI2, font_size3, glov_font.ALIGN.HCENTER, w, 0, 'Keyboard');
+    y += font_size3;
+    font.drawSizedAligned(font_style_desc, x, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER, w, 0, 'Arrows / WASD');
+    y += font_size2;
+    font.drawSizedAligned(font_style_desc, x, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER, w, 0, 'Up / W / Space');
+    y += font_size2;
+    font.drawSizedAligned(font_style_desc, x, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER, w, 0, 'R');
+    y += font_size2;
+
+    y = y_save;
+    x += w;
+    font.drawSizedAligned(font_style_desc, x, y, Z.UI2, font_size3, glov_font.ALIGN.HCENTER, w, 0, '- Controls -');
+    y += font_size3;
+    font.drawSizedAligned(font_style_desc, x, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER, w, 0, '- Move -');
+    y += font_size2;
+    font.drawSizedAligned(font_style_desc, x, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER, w, 0, '- Jump -');
+    y += font_size2;
+    font.drawSizedAligned(font_style_desc, x, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER, w, 0, '- Restart Level -');
+    y += font_size2;
+
+    y = y_save;
+    x += w;
+    font.drawSizedAligned(font_style_desc, x, y, Z.UI2, font_size3, glov_font.ALIGN.HCENTER, w, 0, 'Gamepad');
+    y += font_size3;
+    font.drawSizedAligned(font_style_desc, x, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER, w, 0, 'Stick or D-Pad');
+    y += font_size2;
+    font.drawSizedAligned(font_style_desc, x, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER, w, 0, 'A');
+    y += font_size2;
+    font.drawSizedAligned(font_style_desc, x, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER, w, 0, 'Y');
+    y += font_size2;
+
+
+    y += 100;
+
+    if (glov_ui.buttonText({
+      x: game_width / 2 - glov_ui.button_width / 2 - 64,
+      y,
+      text: 'BEGIN'
+    }) || glov_input.keyDownHit(key_codes.SPACE) || glov_input.keyDownHit(key_codes.RETURN) || glov_input.padDownHit(0, pad_codes.A)) {
+      playInit();
+    }
+
+  }
+
+  function titleInit() {
+    game_state = title;
+  }
+
   function loading() {
     let load_count = glov_sprite.loading() + sound_manager.loading();
     $('#loading').text(`Loading (${load_count})...`);
     if (!load_count) {
       //endOfSetInit();
-      playInit();
+      //playInit();
+      titleInit();
     }
   }
 

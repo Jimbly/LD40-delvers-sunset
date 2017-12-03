@@ -16,7 +16,7 @@ TODO:
 * X Simple analytics / scores on completion
 * X Music
 * X Change pants/shirt color when colorblind
-* Title page
+* X Title page
 
 Stretch:
 * Final screen: Cure all ailments, acquire Death, note how many times we died
