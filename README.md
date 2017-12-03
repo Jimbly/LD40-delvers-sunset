@@ -9,9 +9,11 @@ TODO:
 * X Start adding more visual disabilities
 * X letter box things outside of aspect ratio (with a little extra) - shouldn't be able to cheap with nearsighted on level 2
 * X Display progress on disabilities screen
-* Music
 * Finalize character, make peg-legged
+* Music
 * Death anims
+* more consistent respawn time
+* clearer respawn sound
 
 Stretch:
 * Timing and high scores

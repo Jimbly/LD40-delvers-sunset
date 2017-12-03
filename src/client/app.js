@@ -194,7 +194,7 @@ export function main(canvas)
     limp: false,
     color_blindness: false,
     vertigo: false,
-    deaf: true,
+    deaf: false,
     amnesia: false,
     blindness: false,
     paranoia: false,
@@ -217,7 +217,7 @@ export function main(canvas)
     { key : 'vertigo', name: 'Vertigo' },
     { key : 'deaf', name: 'Deaf' },
     { key : 'amnesia', name: 'Amnesia' },
-    { key : 'paranoia', name: 'Paranoia' },
+    { key : 'paranoia', name: 'Dementia' },
     { key : 'nearsighted', name: 'Myopia' },
     { key : 'blindness', name: 'Blindness' },
   ];
@@ -229,7 +229,7 @@ export function main(canvas)
     return 'CURED!';
   }
 
-  let level_index = 2;
+  let level_index = 0;
   let level_countdown = 0;
   let vertigo_counter = 0;
 
@@ -936,7 +936,7 @@ export function main(canvas)
     }
 
     // character
-    let char_draw_pos = [character.pos[0] * TILESIZE,  game_height - ((character.pos[1] + CHAR_H) * TILESIZE)];
+    let char_draw_pos = [character.pos[0] * TILESIZE,  game_height - ((character.pos[1] + CHAR_H) * TILESIZE) + 64/16];
     if (character.facing < 0) {
       char_draw_pos[0] += CHAR_W * TILESIZE;
     }
@@ -948,6 +948,12 @@ export function main(canvas)
       let frame = Math.floor((character.runloop % 1) * 8);
       if (!character.on_ground) {
         frame = character.jumping ? 9 : 8;
+      } else if (Math.abs(character.v[0]) < 0.1) {
+        if (frame === 0) {
+          frame = 10;
+        } else if (frame === 4) {
+          frame = 11;
+        }
       }
       draw_list.queue(sprites.avatar2, char_draw_pos[0], char_draw_pos[1], Z.CHARACTER, color_white,
         char_draw_scale, sprites.avatar2.uidata.rects[frame]);
@@ -955,10 +961,16 @@ export function main(canvas)
 
     // world
     if (disabil.vertigo) {
-      vertigo_counter += dt * 0.01;
       if (character.on_ground) {
-        vertigo_counter = Math.min(vertigo_counter, Math.PI * 2);
+        let next = vertigo_counter + dt * 0.005;
+        //glov_ui.print(null, 500, 500, 500, next.toFixed(2));
+        if (vertigo_counter <= Math.PI) {
+          vertigo_counter = Math.min(next, Math.PI);
+        } else {
+          vertigo_counter = Math.min(next, Math.PI * 2);
+        }
       } else {
+        vertigo_counter += dt * 0.005;
         while (vertigo_counter > Math.PI * 2) {
           vertigo_counter -= Math.PI * 2;
         }
