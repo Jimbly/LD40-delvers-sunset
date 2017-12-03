@@ -113,11 +113,17 @@ class SoundManager {
     if (this.global_timer - last_played_time < 45) {
       return;
     }
-    this.channels[this.channel++].play(sounds[soundname]);
+    let channel = this.channels[this.channel++];
+    channel.play(sounds[soundname]);
     this.last_played[soundname] = this.global_timer;
     if (this.channel === this.channels.length) {
       this.channel = 0;
     }
+    return {
+      stop: function () {
+        channel.stop();
+      }
+    };
   }
 
   playMusic(soundname, volume, transition) {
