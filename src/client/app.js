@@ -67,6 +67,7 @@ export function main(canvas)
   // Cache key_codes
   const key_codes = glov_input.key_codes;
   const pad_codes = glov_input.pad_codes;
+  const MUSIC_VOLUME = 0.5;
 
   let game_state;
 
@@ -185,27 +186,27 @@ export function main(canvas)
   let have_scores = false;
   let character;
   let level;
-  let disabil_index = 8;
+  let disabil_index = 0;
   let disabil = {
-    limp: true,
-    color_blindness: true,
+    limp: false,
+    color_blindness: false,
     vertigo: false,
-    deaf: true,
-    amnesia: true,
+    deaf: false,
+    amnesia: false,
     blindness: false,
     paranoia: false,
     nearsighted: false,
   };
   let disabil_flow = [
-    {},
-    { add: ['limp'], remove: [] },
-    { add: ['vertigo'], remove: [] },
-    { add: ['paranoia'], remove: ['vertigo'] },
-    { add: ['color_blindness'], remove: [] },
-    { add: ['nearsighted'], remove: [] },
-    { add: ['deaf', 'amnesia'], remove: [] },
-    { add: ['blindness'], remove: ['deaf', 'nearsighted', 'color_blindness', 'paranoia'] },
-    { add: ['deaf'], remove: [] },
+    { song: 'song1'},
+    { add: ['limp'], remove: [], song: 'song1-slow' },
+    { add: ['vertigo'], remove: [], song: 'song2' },
+    { add: ['paranoia'], remove: ['vertigo'], song: 'song2-wahwah' },
+    { add: ['color_blindness'], remove: [], song: 'song2-diffuse' },
+    { add: ['nearsighted'], remove: [], song: 'song1' },
+    { add: ['deaf', 'amnesia'], remove: [], song: 'song1-deaf' },
+    { add: ['blindness'], remove: ['deaf', 'nearsighted', 'color_blindness', 'paranoia'], song: 'song1' },
+    { add: ['deaf'], remove: [], song: 'song1-deaf' },
   ];
   const disabil_list = [
     { key : 'limp', name: 'Unipedalism' },
@@ -270,11 +271,17 @@ export function main(canvas)
   let did_remap = false;
   let laser_sound;
   let last_index_label, level_index_label, level_title;
+  function startMusic(victory) {
+    sound_manager.playMusic(
+      (victory ? null : disabil_flow[disabil_index].song) || 'song2',
+      victory ? 1 : MUSIC_VOLUME, sound_manager.FADE);
+  }
   function levelInit() {
     if (laser_sound) {
       laser_sound.stop();
       laser_sound = null;
     }
+    startMusic();
     if (level_index === 0 && !did_remap) {
       index_map = [0,1,2,3];
       did_remap = true;
@@ -1148,32 +1155,32 @@ export function main(canvas)
       if (disabil_index === 8) {
         font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
           game_width, 0, `(This one is near impossible)`);
-      } else {
-        if (have_scores) {
-          // show number of people who completed it here
-          let scores = score.high_scores.all;
-          let my_di = disabil_index - 1;
-          let better = 0;
-          let same = 0;
-          for (let ii = 0; ii < scores.length; ++ii) {
-            if (scores[ii].name === score.player_name) {
-              continue;
-            }
-            if (scores[ii].score.disabil_index === my_di && scores[ii].score.level_index === level_index) {
-              ++same;
-            } else if (scores[ii].score.disabil_index > my_di || scores[ii].score.disabil_index === my_di &&
-              scores[ii].score.level_index > level_index
-            ) {
-              ++better;
-            }
+        y += font_size2 * 0.8 + 8;
+      }
+      if (have_scores) {
+        // show number of people who completed it here
+        let scores = score.high_scores.all;
+        let my_di = disabil_index - 1;
+        let better = 0;
+        let same = 0;
+        for (let ii = 0; ii < scores.length; ++ii) {
+          if (scores[ii].name === score.player_name) {
+            continue;
           }
+          if (scores[ii].score.disabil_index === my_di && scores[ii].score.level_index === level_index) {
+            ++same;
+          } else if (scores[ii].score.disabil_index > my_di || scores[ii].score.disabil_index === my_di &&
+            scores[ii].score.level_index > level_index
+          ) {
+            ++better;
+          }
+        }
+        font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
+          game_width, 0, `${Math.ceil(better / scores.length * 100)}% of players have made it farther`);
+        y += font_size2;
+        if (same) {
           font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
-            game_width, 0, `${Math.ceil(better / scores.length * 100)}% of players have made it farther`);
-          y += font_size2;
-          if (same) {
-            font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
-              game_width, 0, `${Math.ceil(same / scores.length * 100)}% of players gave up here`);
-          }
+            game_width, 0, `${Math.ceil(same / scores.length * 100)}% of players gave up here`);
         }
       }
     }
@@ -1183,9 +1190,11 @@ export function main(canvas)
     game_state = endOfSet;
     ++disabil_index;
     disabil_trans = JSON.parse(JSON.stringify(disabil_flow[disabil_index]));
+    startMusic();
   }
 
   function victory(dt) {
+    startMusic(true);
     defaultCamera();
 
     const font_style = glov_font.style(null, {
