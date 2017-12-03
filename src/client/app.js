@@ -122,6 +122,7 @@ export function main(canvas)
 
     sprites.avatar = glov_ui.loadSpriteRect('avatar2.png', [13, 13, 13, 13], [26, 26, 26, 26]);
     sprites.avatar_pegged = glov_ui.loadSpriteRect('avatar3-pegged.png', [13, 13, 13, 13], [26, 26, 26, 26]);
+    sprites.avatar_colorblind = glov_ui.loadSpriteRect('avatar3-colorblind.png', [13, 13, 13, 13], [26, 26, 26, 26]);
     sprites.lasers = glov_ui.loadSpriteRect('lasers.png', [16, 16, 16, 16], [32]);
 
     sprites.solid = glov_ui.loadSpriteRect('bricks2.png', [64], [16, 16, 16, 16]);
@@ -227,7 +228,7 @@ export function main(canvas)
   }
 
   let total_deaths = 0;
-  let level_index = 3;
+  let level_index = 0;
   let level_countdown = 0;
   let vertigo_counter = 0;
 
@@ -959,7 +960,7 @@ export function main(canvas)
         frame = 11;
       }
     }
-    draw_list.queue(disabil.limp ? sprites.avatar_pegged : sprites.avatar, char_draw_pos[0], char_draw_pos[1], Z.CHARACTER, color_white,
+    draw_list.queue((disabil.color_blindness && !disabil.nearsighted) ? sprites.avatar_colorblind : disabil.limp ? sprites.avatar_pegged : sprites.avatar, char_draw_pos[0], char_draw_pos[1], Z.CHARACTER, color_white,
       char_draw_scale, sprites.avatar.uidata.rects[frame]);
 
     // world

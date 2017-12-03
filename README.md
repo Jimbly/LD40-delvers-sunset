@@ -15,7 +15,7 @@ TODO:
 * X clearer respawn sound
 * X Simple analytics / scores on completion
 * X Music
-* Change pants/shirt color when colorblind
+* X Change pants/shirt color when colorblind
 * Title page
 
 Stretch:
