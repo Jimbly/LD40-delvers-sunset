@@ -1,4 +1,4 @@
-Ludum Dare 40 - The more you have the worse it is
+Delver's Sunset - Ludum Dare 40 - The more you have the worse it is
 =================================================
 
 TODO:
@@ -19,7 +19,7 @@ TODO:
 * X Title page
 
 Stretch:
-* Final screen: Cure all ailments, acquire Death, note how many times we died
+* X Final screen: Cure all ailments, acquire Death, note how many times we died
 * Flesh out death anims
 * Display high scores and allow entering a name
 * Main menu, resume from any unlocked sequence
@@ -27,5 +27,9 @@ Stretch:
 
 Tools used:
 * Custom Engine: [GLOV.js](https://github.com/Jimbly/turbulenz-playground)
+* Mtn Dew
 * Some tiles: [Piskel](https://www.piskelapp.com/)
 * Some tiles: [Tilemancer](https://led.itch.io/tilemancer)
+* Image Editing:
+* Music:
+* Sound Effects:

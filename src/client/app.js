@@ -47,7 +47,9 @@ export function main(canvas)
   glov_ui.button_height *= 2;
   glov_ui.font_height *= 2;
 
-  if (location.host.indexOf('localhost') !== -1) {
+  const DEBUG = (location.host.indexOf('localhost') !== -1);
+
+  if (DEBUG) {
     sound_manager.sound_on = sound_manager.music_on = false;
   }
 
@@ -191,6 +193,7 @@ export function main(canvas)
   let have_scores = false;
   let character;
   let level;
+  let level_index = 0;
   let disabil_index = 0;
   let disabil = {
     limp: false,
@@ -201,6 +204,7 @@ export function main(canvas)
     blindness: false,
     paranoia: false,
     nearsighted: false,
+    dead: false,
   };
   let disabil_flow = [
     { song: 'song1'},
@@ -209,30 +213,48 @@ export function main(canvas)
     { add: ['paranoia'], remove: ['vertigo'], song: 'song2-wahwah' },
     { add: ['color_blindness'], remove: [], song: 'song2-diffuse' },
     { add: ['nearsighted'], remove: [], song: 'song1' },
-    { add: ['deaf', 'amnesia'], remove: [], song: 'song1-deaf' },
-    { add: ['blindness'], remove: ['deaf', 'nearsighted', 'color_blindness', 'paranoia'], song: 'song1' },
+    { add: ['amnesia', 'deaf'], remove: [], song: 'song1-deaf' },
+    { add: ['blindness'], remove: ['deaf', 'nearsighted', 'color_blindness', 'paranoia' ], song: 'song1' },
     { add: ['deaf'], remove: [], song: 'song1-deaf' },
   ];
   const disabil_list = [
     { key : 'limp', name: 'Unipedalism' },
-    { key : 'color_blindness', name: 'Deuteranopia' },
     { key : 'vertigo', name: 'Vertigo' },
+    { key : 'paranoia', name: 'Dementia' },
+    { key : 'color_blindness', name: 'Deuteranopia' },
+    { key : 'nearsighted', name: 'Myopia' },
     { key : 'deaf', name: 'Deaf' },
     { key : 'amnesia', name: 'Amnesia' },
-    { key : 'paranoia', name: 'Dementia' },
-    { key : 'nearsighted', name: 'Myopia' },
     { key : 'blindness', name: 'Blindness' },
+    { key : 'dead', name: 'Dead' },
   ];
 
+  let total_deaths = 0;
+  if (DEBUG) {
+    disabil_index = 6;
+    level_index = 3;
+    for (let ii = 1; ii <= disabil_index; ++ii) {
+      let dl = disabil_flow[ii];
+      for (let jj = 0; jj < dl.add.length; ++jj) {
+        disabil[dl.add[jj]] = true;
+      }
+      for (let jj = 0; jj < dl.remove.length; ++jj) {
+        disabil[dl.remove[jj]] = false;
+      }
+      ++total_deaths;
+    }
+  }
+
   function curedName(key) {
+    if (disabil_index === disabil_flow.length) {
+      return 'Irrelevant';
+    }
     if (key === 'color_blindness' || key === 'paranoia' || key === 'nearsighted') {
       return 'Irrelevant';
     }
     return 'CURED!';
   }
 
-  let total_deaths = 0;
-  let level_index = 0;
   let level_countdown = 0;
   let vertigo_counter = 0;
 
@@ -751,23 +773,26 @@ export function main(canvas)
     glow_color: 0xFFFFFFff,
   });
   const DISABIL_X = [0.1 * TILESIZE, LEVEL_W / 3 * TILESIZE];
-  const DISABIL_Y = [1 * TILESIZE, 3.1 * TILESIZE];
+  let   DISABIL_Y = [1 * TILESIZE, 2.5 * TILESIZE];
   const DISABIL_SIZE = [TILESIZE * 0.60, TILESIZE * 1];
   let dd_counter = 0;
   let dd_state;
   let dd_blink;
   let dd_removed;
   let dd_new;
-  function displayDisabilities(trans, dt) {
+  function displayDisabilities(trans, dt, target_y) {
+    if (target_y) {
+      DISABIL_Y[1] = target_y;
+    }
     let pos = 0;
     let end_of_set = !!trans;
     if (end_of_set) {
       if (!dd_counter) {
         // init!
-        if (trans.add.length) {
-          dd_state = 0;
-        } else if (trans.remove.length) {
+        if (trans.remove.length) {
           dd_state = 1;
+        } else if (trans.add.length) {
+          dd_state = 0;
         } else {
           dd_state = 2;
         }
@@ -786,11 +811,7 @@ export function main(canvas)
           disabil[k] = true;
           dd_new[k] = true;
           if (!trans.add.length) {
-            if (trans.remove.length) {
-              dd_state = 1;
-            } else {
-              dd_state = 2;
-            }
+            dd_state = 2;
           }
         }
       } else if (dd_state === 1) {
@@ -802,7 +823,11 @@ export function main(canvas)
           disabil[k] = false;
           dd_removed[k] = true;
           if (!trans.remove.length) {
-            dd_state = 2;
+            if (trans.add.length) {
+              dd_state = 0;
+            } else {
+              dd_state = 2;
+            }
           }
         }
       } else if (dd_state === 2) {
@@ -839,7 +864,7 @@ export function main(canvas)
           color: 0xFFFFFF00 | alpha,
           outline_color: title_font_style.outline_color & 0xFFFFFF00 | alpha,
         }),
-      x, interp(y), Z.UI2, size, glov_font.ALIGN.HLEFT, 0, 0, 'Disabilities:');
+      x, interp(y), Z.UI2, size, glov_font.ALIGN.HLEFT, 0, 0, 'Afflictions:');
       y[0] += size;
       y[1] += size;
       x += size;
@@ -867,7 +892,7 @@ export function main(canvas)
             0, 0, 'NEW!');
         }
         font.drawSizedAligned(style, x, interp(y), Z.UI2, s, glov_font.ALIGN.HLEFT|glov_font.ALIGN.VCENTER,
-          0, size, disabil_list[ii].name);
+          0, size, (key === 'dead') ? `Dead (${total_deaths} times over)` : disabil_list[ii].name);
         y[0] += size;
         y[1] += size;
       } else if (pos !== 0) {
@@ -919,7 +944,7 @@ export function main(canvas)
       if (glov_input.keyDownHit(key_codes.E)) {
         character.dead = 0;
         character.exited = true;
-        level_countdown = COUNTDOWN_SUCCESS;
+        level_countdown = 100;
       }
     }
 
@@ -1134,14 +1159,15 @@ export function main(canvas)
 
     const font_size = TILESIZE * 1.5;
 
-    let y = TILESIZE;
+    let y = TILESIZE * 0.5;
     font.drawSizedAligned(font_style_seq_complete, -64, y, Z.UI2, font_size, glov_font.ALIGN.HCENTER,
       game_width, 0, 'Sequence Completed!');
+    y += font_size + 20;
 
-    displayDisabilities(disabil_trans, dt);
+    displayDisabilities(disabil_trans, dt, y);
 
     if (dd_state === 2) {
-      y = game_height * 0.70;
+      y = 685;
 
       if (glov_ui.buttonText({
         x: game_width / 2 - glov_ui.button_width / 2 - 64,
@@ -1198,6 +1224,7 @@ export function main(canvas)
     startMusic();
   }
 
+  let victory_trans;
   function victory(dt) {
     startMusic(true);
     defaultCamera();
@@ -1219,10 +1246,11 @@ export function main(canvas)
     y += font_size;
     font.drawSizedAligned(font_style, -64, y, Z.UI2, font_size, glov_font.ALIGN.HCENTER,
       game_width, 0, 'Completed!');
+    y += font_size + 20;
 
-    displayDisabilities({add:[], remove:[]});
+    displayDisabilities(victory_trans, dt, y);
 
-    y = game_height * 0.70;
+    y = 685;
     const font_size2 = TILESIZE * 0.75;
     if (have_scores) {
       // show number of people who completed it here
@@ -1250,6 +1278,8 @@ export function main(canvas)
   }
 
   function victoryInit() {
+    disabil_index = disabil_flow.length;
+    victory_trans = {add:['dead'], remove:['blindness', 'amnesia', 'deaf', 'limp' ]};
     game_state = victory;
   }
 
@@ -1362,8 +1392,14 @@ export function main(canvas)
     $('#loading').text(`Loading (${load_count})...`);
     if (!load_count) {
       //endOfSetInit();
-      //playInit();
-      titleInit();
+      if (DEBUG) {
+        score.updateHighScores(function () {
+          have_scores = true;
+        });
+        playInit();
+      } else {
+        titleInit();
+      }
     }
   }
 
