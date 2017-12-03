@@ -24,6 +24,8 @@ export function main(canvas)
 {
   const glov_engine = require('./glov/engine.js');
   const glov_font = require('./glov/font.js');
+  const score = require('./score.js');
+  score.getScore();
   const util = require('./glov/util.js');
 
   glov_engine.startup({
@@ -76,7 +78,7 @@ export function main(canvas)
   const LEVEL_W = 18;
   const LEVEL_H = 14;
   const COUNTDOWN_SUCCESS = 1500;
-  let COUNTDOWN_FAIL;
+  let COUNTDOWN_FAIL = 1500;
 
 
   function initGraphics() {
@@ -96,6 +98,7 @@ export function main(canvas)
     // sound_manager.loadSound('footstep5');
     sound_manager.loadSound('jump');
     sound_manager.loadSound('jump_land');
+    sound_manager.loadSound('dead_land');
     sound_manager.loadSound('death_spike');
     sound_manager.loadSound('death_laser');
     sound_manager.loadSound('death_beam');
@@ -179,15 +182,16 @@ export function main(canvas)
     });
   }
 
+  let have_scores = false;
   let character;
   let level;
-  let disabil_index = 0;
+  let disabil_index = 8;
   let disabil = {
     limp: true,
-    color_blindness: false,
+    color_blindness: true,
     vertigo: false,
-    deaf: false,
-    amnesia: false,
+    deaf: true,
+    amnesia: true,
     blindness: false,
     paranoia: false,
     nearsighted: false,
@@ -204,7 +208,7 @@ export function main(canvas)
     { add: ['deaf'], remove: [] },
   ];
   const disabil_list = [
-    { key : 'limp', name: 'Monopedal' },
+    { key : 'limp', name: 'Unipedalism' },
     { key : 'color_blindness', name: 'Deuteranopia' },
     { key : 'vertigo', name: 'Vertigo' },
     { key : 'deaf', name: 'Deaf' },
@@ -221,7 +225,8 @@ export function main(canvas)
     return 'CURED!';
   }
 
-  let level_index = 0;
+  let total_deaths = 0;
+  let level_index = 3;
   let level_countdown = 0;
   let vertigo_counter = 0;
 
@@ -591,7 +596,7 @@ export function main(canvas)
       }
     }
     if (character.on_ground && !was_on_ground) {
-      playSound('jump_land');
+      playSound(character.dead ? 'dead_land' :'jump_land');
     }
     // dangers in final position
     if (!character.exited && !character.dead) {
@@ -603,6 +608,7 @@ export function main(canvas)
         if (collide([d[0] + 0.25, d[1], d[2] - 0.25, d[3]])) {
           playSound('death_spike');
           character.dead = 2;
+          ++total_deaths;
           if (d[4] !== -1) {
             character.v[0] = 0;
           }
@@ -619,6 +625,7 @@ export function main(canvas)
           {
             playSound('death_laser');
             character.dead = 1;
+            ++total_deaths;
           }
         }
       }
@@ -631,15 +638,11 @@ export function main(canvas)
           if (util.lineCircleIntersect(b, [b[0] + LEVEL_W, b[1] + LEVEL_W * b[2]], [character.pos[0] + CHAR_W/2, character.pos[1] + CHAR_H/2], CHAR_H/2)) {
             playSound('death_beam');
             character.dead = 3;
+            ++total_deaths;
           }
         }
       }
       if (character.dead) {
-        if (disabil.blindness) {
-          COUNTDOWN_FAIL = 750;
-        } else {
-          COUNTDOWN_FAIL = 3000;
-        }
         level_countdown = COUNTDOWN_FAIL;
         if (laser_sound) {
           laser_sound.stop();
@@ -650,6 +653,10 @@ export function main(canvas)
     if (!character.dead && !character.exited) {
       if (collide(level.exit)) {
         character.exited = true;
+        have_scores = false;
+        score.setScore(disabil_index, level_index, total_deaths, function () {
+          have_scores = true;
+        });
         playSound('victory');
         level_countdown = COUNTDOWN_SUCCESS;
         if (laser_sound) {
@@ -732,7 +739,7 @@ export function main(canvas)
     glow_color: 0xFFFFFFff,
   });
   const DISABIL_X = [0.1 * TILESIZE, LEVEL_W / 3 * TILESIZE];
-  const DISABIL_Y = [1 * TILESIZE, 3.5 * TILESIZE];
+  const DISABIL_Y = [1 * TILESIZE, 3.1 * TILESIZE];
   const DISABIL_SIZE = [TILESIZE * 0.60, TILESIZE * 1];
   let dd_counter = 0;
   let dd_state;
@@ -1122,7 +1129,7 @@ export function main(canvas)
     displayDisabilities(disabil_trans, dt);
 
     if (dd_state === 2) {
-      y = game_height * 0.80;
+      y = game_height * 0.70;
 
       if (glov_ui.buttonText({
         x: game_width / 2 - glov_ui.button_width / 2 - 64,
@@ -1139,10 +1146,36 @@ export function main(canvas)
         game_width, 0, `Completed ${disabil_index} of ${disabil_flow.length} sequences`);
       y += font_size2;
       if (disabil_index === 8) {
-      font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
-        game_width, 0, `(This one is near impossible)`);
+        font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
+          game_width, 0, `(This one is near impossible)`);
+      } else {
+        if (have_scores) {
+          // show number of people who completed it here
+          let scores = score.high_scores.all;
+          let my_di = disabil_index - 1;
+          let better = 0;
+          let same = 0;
+          for (let ii = 0; ii < scores.length; ++ii) {
+            if (scores[ii].name === score.player_name) {
+              continue;
+            }
+            if (scores[ii].score.disabil_index === my_di && scores[ii].score.level_index === level_index) {
+              ++same;
+            } else if (scores[ii].score.disabil_index > my_di || scores[ii].score.disabil_index === my_di &&
+              scores[ii].score.level_index > level_index
+            ) {
+              ++better;
+            }
+          }
+          font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
+            game_width, 0, `${Math.ceil(better / scores.length * 100)}% of players have made it farther`);
+          y += font_size2;
+          if (same) {
+            font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
+              game_width, 0, `${Math.ceil(same / scores.length * 100)}% of players gave up here`);
+          }
+        }
       }
-
     }
   }
 
@@ -1174,6 +1207,32 @@ export function main(canvas)
       game_width, 0, 'Completed!');
 
     displayDisabilities({add:[], remove:[]});
+
+    y = game_height * 0.70;
+    const font_size2 = TILESIZE * 0.75;
+    if (have_scores) {
+      // show number of people who completed it here
+      let scores = score.high_scores.all;
+      let my_di = disabil_index;
+      let better = 0;
+      let same = 0;
+      for (let ii = 0; ii < scores.length; ++ii) {
+        if (scores[ii].name === score.player_name) {
+          continue;
+        }
+        if (scores[ii].score.disabil_index === my_di && scores[ii].score.level_index === level_index) {
+          ++same;
+          if (scores[ii].score.deaths < total_deaths) {
+            ++better;
+          }
+        }
+      }
+      font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
+        game_width, 0, `Only ${Math.ceil(same / scores.length * 100)}% of players also won!`);
+      y += font_size2;
+      font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
+        game_width, 0, `${Math.ceil(better / same * 100)}% of those died fewer times than you`);
+    }
   }
 
   function victoryInit() {

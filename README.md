@@ -11,14 +11,16 @@ TODO:
 * X Display progress on disabilities screen
 * X Death anims
 * X Finalize character, make peg-legged
+* X more consistent respawn time
+* X clearer respawn sound
+* X Simple analytics / scores on completion
 * Music
-* more consistent respawn time
-* clearer respawn sound
 
 Stretch:
+* Final screen: Cure all ailments, acquire Death, note how many times we died
 * Flesh out death anims
-* Timing and high scores
-* Volume controls
+* Display high scores and allow entering a name
+* Volume controls?
 
 Tools used:
 * Custom Engine: [GLOV.js](https://github.com/Jimbly/turbulenz-playground)
