@@ -116,16 +116,8 @@ export function main(canvas)
       textureRectangle : math_device.v4Build(0, 0, 1, 1)
     });
 
-    // sprites.avatar = createSprite('avatar.png', {
-    //   width : CHAR_W * TILESIZE,
-    //   height : CHAR_H * TILESIZE,
-    //   rotation : 0,
-    //   color : [1,1,1,1],
-    //   origin: [0, CHAR_H * TILESIZE],
-    //   textureRectangle : math_device.v4Build(0, 0, 16, 32)
-    // });
-    sprites.avatar = glov_ui.loadSpriteRect('avatar.png', [16, 16], [32]);
-    sprites.avatar2 = glov_ui.loadSpriteRect('avatar2.png', [13, 13, 13, 13], [26, 26, 26]);
+    sprites.avatar = glov_ui.loadSpriteRect('avatar2.png', [13, 13, 13, 13], [26, 26, 26, 26]);
+    sprites.avatar_pegged = glov_ui.loadSpriteRect('avatar3-pegged.png', [13, 13, 13, 13], [26, 26, 26, 26]);
     sprites.lasers = glov_ui.loadSpriteRect('lasers.png', [16, 16, 16, 16], [32]);
 
     sprites.solid = glov_ui.loadSpriteRect('bricks2.png', [64], [16, 16, 16, 16]);
@@ -191,7 +183,7 @@ export function main(canvas)
   let level;
   let disabil_index = 0;
   let disabil = {
-    limp: false,
+    limp: true,
     color_blindness: false,
     vertigo: false,
     deaf: false,
@@ -212,7 +204,7 @@ export function main(canvas)
     { add: ['deaf'], remove: [] },
   ];
   const disabil_list = [
-    { key : 'limp', name: 'Limp' },
+    { key : 'limp', name: 'Monopedal' },
     { key : 'color_blindness', name: 'Deuteranopia' },
     { key : 'vertigo', name: 'Vertigo' },
     { key : 'deaf', name: 'Deaf' },
@@ -610,7 +602,7 @@ export function main(canvas)
         }
         if (collide([d[0] + 0.25, d[1], d[2] - 0.25, d[3]])) {
           playSound('death_spike');
-          character.dead = true;
+          character.dead = 2;
           if (d[4] !== -1) {
             character.v[0] = 0;
           }
@@ -626,7 +618,7 @@ export function main(canvas)
             character.pos[1] + CHAR_H > y && character.pos[1] < y + h)
           {
             playSound('death_laser');
-            character.dead = true;
+            character.dead = 1;
           }
         }
       }
@@ -638,7 +630,7 @@ export function main(canvas)
         if (b[3] > 0.5 + BEAM_FIRE) {
           if (util.lineCircleIntersect(b, [b[0] + LEVEL_W, b[1] + LEVEL_W * b[2]], [character.pos[0] + CHAR_W/2, character.pos[1] + CHAR_H/2], CHAR_H/2)) {
             playSound('death_beam');
-            character.dead = true;
+            character.dead = 3;
           }
         }
       }
@@ -906,7 +898,7 @@ export function main(canvas)
         playInit();
       }
       if (glov_input.keyDownHit(key_codes.E)) {
-        character.dead = false;
+        character.dead = 0;
         character.exited = true;
         level_countdown = COUNTDOWN_SUCCESS;
       }
@@ -941,23 +933,20 @@ export function main(canvas)
       char_draw_pos[0] += CHAR_W * TILESIZE;
     }
     let char_draw_scale = [character.facing * TILESIZE*CHAR_W, TILESIZE*CHAR_H, 1, 1];
+    let frame = Math.floor((character.runloop % 1) * 8);
     if (character.dead) {
-      draw_list.queue(sprites.avatar, char_draw_pos[0], char_draw_pos[1], Z.CHARACTER, color_white,
-        char_draw_scale, sprites.avatar.uidata.rects[1]);
-    } else {
-      let frame = Math.floor((character.runloop % 1) * 8);
-      if (!character.on_ground) {
-        frame = character.jumping ? 9 : 8;
-      } else if (Math.abs(character.v[0]) < 0.1) {
-        if (frame === 0) {
-          frame = 10;
-        } else if (frame === 4) {
-          frame = 11;
-        }
+      frame = 11 + character.dead;
+    } else if (!character.on_ground) {
+      frame = character.jumping ? 9 : 8;
+    } else if (Math.abs(character.v[0]) < 0.1) {
+      if (frame === 0) {
+        frame = 10;
+      } else if (frame === 4) {
+        frame = 11;
       }
-      draw_list.queue(sprites.avatar2, char_draw_pos[0], char_draw_pos[1], Z.CHARACTER, color_white,
-        char_draw_scale, sprites.avatar2.uidata.rects[frame]);
     }
+    draw_list.queue(disabil.limp ? sprites.avatar_pegged : sprites.avatar, char_draw_pos[0], char_draw_pos[1], Z.CHARACTER, color_white,
+      char_draw_scale, sprites.avatar.uidata.rects[frame]);
 
     // world
     if (disabil.vertigo) {
