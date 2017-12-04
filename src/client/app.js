@@ -49,7 +49,7 @@ export function main(canvas)
 
   const DEBUG = (location.host.indexOf('localhost') !== -1);
 
-  if (DEBUG) {
+  if (DEBUG && false) {
     sound_manager.sound_on = sound_manager.music_on = false;
   }
 
@@ -1172,25 +1172,8 @@ export function main(canvas)
     if (dd_state === 2) {
       y = 685;
 
-      if (glov_ui.buttonText({
-        x: game_width / 2 - glov_ui.button_width / 2 - 64,
-        y,
-        text: 'CONTINUE'
-      }) || glov_input.keyDownHit(key_codes.SPACE) || glov_input.keyDownHit(key_codes.RETURN) || glov_input.padDownHit(0, pad_codes.A)) {
-        level_index = 0;
-        playInit();
-      }
-      y += glov_ui.button_height + 8;
-
       const font_size2 = TILESIZE * 0.75;
-      font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER,
-        game_width, 0, `Completed ${disabil_index} of ${disabil_flow.length} sequences`);
-      y += font_size2;
-      if (disabil_index === 8) {
-        font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
-          game_width, 0, `(This one is near impossible)`);
-        y += font_size2 * 0.8 + 8;
-      }
+
       if (have_scores) {
         // show number of people who completed it here
         let scores = score.high_scores.all;
@@ -1217,7 +1200,29 @@ export function main(canvas)
         if (same) {
           font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
             game_width, 0, `${Math.ceil(same / total * 100)}% of players gave up here`);
+          y += font_size2;
         }
+      }
+
+      font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER,
+        game_width, 0, `Starting Sequence ${disabil_index + 1} of ${disabil_flow.length}...`);
+      y += font_size2;
+
+      y += 20;
+      if (glov_ui.buttonText({
+        x: game_width / 2 - glov_ui.button_width / 2 - 64,
+        y,
+        text: 'CONTINUE'
+      }) || glov_input.keyDownHit(key_codes.SPACE) || glov_input.keyDownHit(key_codes.RETURN) || glov_input.padDownHit(0, pad_codes.A)) {
+        level_index = 0;
+        playInit();
+      }
+      y += glov_ui.button_height + 8;
+
+      if (disabil_index === 8) {
+        font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
+          game_width, 0, `(This one is nearly impossible)`);
+        y += font_size2 * 0.8 + 8;
       }
     }
   }
@@ -1260,7 +1265,7 @@ export function main(canvas)
     if (have_scores) {
       // show number of people who completed it here
       let scores = score.high_scores.all;
-      let my_di = disabil_index;
+      let my_di = disabil_index - 1;
       let better = 0;
       let same = 0;
       let total = 0;
@@ -1281,6 +1286,18 @@ export function main(canvas)
       y += font_size2;
       font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
         game_width, 0, `${Math.ceil(better / same * 100)}% of those died fewer times than you`);
+      y += font_size2;
+
+      y += 20;
+
+      if (glov_ui.buttonText({
+        x: game_width / 2 - glov_ui.button_width / 2 - 64,
+        y,
+        text: 'HIGH SCORES'
+      })) {
+        scoresInit();
+      }
+
     }
   }
 
@@ -1288,6 +1305,9 @@ export function main(canvas)
     disabil_index = disabil_flow.length;
     victory_trans = {add:['dead'], remove:['blindness', 'amnesia', 'deaf', 'limp' ]};
     game_state = victory;
+    score.updateHighScores(function () {
+      have_scores = true;
+    });
   }
 
   const font_style_title = glov_font.style(null, {
@@ -1399,6 +1419,7 @@ export function main(canvas)
   }
 
   function titleInit() {
+    startMusic(true);
     game_state = title;
   }
 
@@ -1429,19 +1450,22 @@ export function main(canvas)
 
     let hs = score.high_scores && score.high_scores.all;
     if (hs) {
-      if (DEBUG) {
-        let ar = [];
-        for (let ii = 0; ii < 10; ++ii) {
-          for (let jj = 0; jj < hs.length; ++jj) {
-            ar.push(hs[jj]);
-          }
-        }
-        hs = ar;
-      }
+      // if (DEBUG) {
+      //   let ar = [];
+      //   for (let ii = 0; ii < 10; ++ii) {
+      //     for (let jj = 0; jj < hs.length; ++jj) {
+      //       ar.push(hs[jj]);
+      //     }
+      //   }
+      //   hs = ar;
+      // }
       for (let ii = 0; ii < Math.min(hs.length, 20); ++ii) {
         let sc = hs[ii];
-
-        font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER,
+        let style = font_style_desc;
+        if (sc.name === score.player_name) {
+          style = glov_font.styleColored(style, 0xFFFF20ff);
+        }
+        font.drawSizedAligned(style, -64, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER,
           game_width, 0, `#${ii+1}: ${sc.name} - ${printScore(sc.score)}`);
 
         y += font_size2;
@@ -1500,12 +1524,12 @@ export function main(canvas)
     $('#loading').text(`Loading (${load_count})...`);
     if (!load_count) {
       //endOfSetInit();
-      if (DEBUG) {
-        // score.updateHighScores(function () {
-        //   have_scores = true;
-        // });
-        // playInit();
-        scoresInit();
+      if (DEBUG && false) {
+        score.updateHighScores(function () {
+          have_scores = true;
+        });
+        playInit();
+        // scoresInit();
       } else {
         titleInit();
       }
