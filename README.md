@@ -20,7 +20,7 @@ TODO:
 
 Stretch:
 * X Final screen: Cure all ailments, acquire Death, note how many times we died
-* Flesh out death anims
+* X Flesh out death anims
 * Display high scores and allow entering a name
 * Main menu, resume from any unlocked sequence
 * Volume controls?

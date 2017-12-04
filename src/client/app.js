@@ -126,9 +126,9 @@ export function main(canvas)
       textureRectangle : math_device.v4Build(0, 0, 1, 1)
     });
 
-    sprites.avatar = glov_ui.loadSpriteRect('avatar2.png', [13, 13, 13, 13], [26, 26, 26, 26]);
-    sprites.avatar_pegged = glov_ui.loadSpriteRect('avatar3-pegged.png', [13, 13, 13, 13], [26, 26, 26, 26]);
-    sprites.avatar_colorblind = glov_ui.loadSpriteRect('avatar3-colorblind.png', [13, 13, 13, 13], [26, 26, 26, 26]);
+    sprites.avatar = glov_ui.loadSpriteRect('avatar2.png', [13, 13, 13, 13], [26, 26, 26, 26, 26, 26]);
+    sprites.avatar_pegged = glov_ui.loadSpriteRect('avatar3-pegged.png', [13, 13, 13, 13], [26, 26, 26, 26, 26, 26]);
+    sprites.avatar_colorblind = glov_ui.loadSpriteRect('avatar3-colorblind.png', [13, 13, 13, 13], [26, 26, 26, 26, 26, 26]);
     sprites.lasers = glov_ui.loadSpriteRect('lasers.png', [16, 16, 16, 16], [32]);
 
     sprites.solid = glov_ui.loadSpriteRect('bricks2.png', [64], [16, 16, 16, 16]);
@@ -231,8 +231,8 @@ export function main(canvas)
 
   let total_deaths = 0;
   if (DEBUG) {
-    disabil_index = 6;
-    level_index = 3;
+    disabil_index = 0;
+    level_index = 2;
     for (let ii = 1; ii <= disabil_index; ++ii) {
       let dl = disabil_flow[ii];
       for (let jj = 0; jj < dl.add.length; ++jj) {
@@ -892,7 +892,7 @@ export function main(canvas)
             0, 0, 'NEW!');
         }
         font.drawSizedAligned(style, x, interp(y), Z.UI2, s, glov_font.ALIGN.HLEFT|glov_font.ALIGN.VCENTER,
-          0, size, (key === 'dead') ? `Dead (${total_deaths} times over)` : disabil_list[ii].name);
+          0, size, (key === 'dead') ? `Dead (${total_deaths} times)` : disabil_list[ii].name);
         y[0] += size;
         y[1] += size;
       } else if (pos !== 0) {
@@ -979,7 +979,10 @@ export function main(canvas)
     let char_draw_scale = [character.facing * TILESIZE*CHAR_W, TILESIZE*CHAR_H, 1, 1];
     let frame = Math.floor((character.runloop % 1) * 8);
     if (character.dead) {
-      frame = 11 + character.dead;
+      let death_frame = 12 + (character.dead - 1) * 3;
+      let frame_rate = (character.dead === 2) ? 400 : 200;
+      let frame_offs = Math.floor(glov_engine.getFrameTimestamp() / frame_rate) % 3;
+      frame = death_frame + frame_offs;
     } else if (!character.on_ground) {
       frame = character.jumping ? 9 : 8;
     } else if (Math.abs(character.v[0]) < 0.1) {
@@ -1194,10 +1197,12 @@ export function main(canvas)
         let my_di = disabil_index - 1;
         let better = 0;
         let same = 0;
+        let total = 0;
         for (let ii = 0; ii < scores.length; ++ii) {
           if (scores[ii].name === score.player_name) {
             continue;
           }
+          ++total;
           if (scores[ii].score.disabil_index === my_di && scores[ii].score.level_index === level_index) {
             ++same;
           } else if (scores[ii].score.disabil_index > my_di || scores[ii].score.disabil_index === my_di &&
@@ -1207,11 +1212,11 @@ export function main(canvas)
           }
         }
         font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
-          game_width, 0, `${Math.ceil(better / scores.length * 100)}% of players have made it farther`);
+          game_width, 0, `${Math.ceil(better / total * 100)}% of players have made it farther`);
         y += font_size2;
         if (same) {
           font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
-            game_width, 0, `${Math.ceil(same / scores.length * 100)}% of players gave up here`);
+            game_width, 0, `${Math.ceil(same / total * 100)}% of players gave up here`);
         }
       }
     }
@@ -1258,10 +1263,12 @@ export function main(canvas)
       let my_di = disabil_index;
       let better = 0;
       let same = 0;
+      let total = 0;
       for (let ii = 0; ii < scores.length; ++ii) {
         if (scores[ii].name === score.player_name) {
           continue;
         }
+        ++total;
         if (scores[ii].score.disabil_index === my_di && scores[ii].score.level_index === level_index) {
           ++same;
           if (scores[ii].score.deaths < total_deaths) {
@@ -1270,7 +1277,7 @@ export function main(canvas)
         }
       }
       font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
-        game_width, 0, `Only ${Math.ceil(same / scores.length * 100)}% of players also won!`);
+        game_width, 0, `Only ${Math.ceil(same / total * 100)}% of players also won!`);
       y += font_size2;
       font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
         game_width, 0, `${Math.ceil(better / same * 100)}% of those died fewer times than you`);

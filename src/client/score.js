@@ -136,7 +136,7 @@ export function getScore(/*ld*/) {
 }
 
 export function setScore(/*ld, */disabil_index, level_index, deaths, cb) {
-  if (!ld.local_score || disabil_index > ld.local_score.turns || disabil_index === ld.local_score.disabil_index && level_index > ld.local_score.level_index ||
+  if (!ld.local_score || disabil_index > ld.local_score.disabil_index || disabil_index === ld.local_score.disabil_index && level_index > ld.local_score.level_index ||
     disabil_index === ld.local_score.disabil_index && level_index === ld.local_score.level_index && deaths < ld.local_score.deaths
   ) {
     // better
