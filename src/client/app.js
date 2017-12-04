@@ -49,7 +49,7 @@ export function main(canvas)
 
   const DEBUG = (location.host.indexOf('localhost') !== -1);
 
-  if (DEBUG && false) {
+  if (DEBUG) {
     sound_manager.sound_on = sound_manager.music_on = false;
   }
 
@@ -1405,6 +1405,9 @@ export function main(canvas)
       y,
       text: 'BEGIN'
     }) || glov_input.keyDownHit(key_codes.SPACE) || glov_input.keyDownHit(key_codes.RETURN) || glov_input.padDownHit(0, pad_codes.A)) {
+      disabil_index = level_index = 0;
+      disabil = {};
+      total_deaths = 0;
       playInit();
     }
     y += glov_ui.button_height + 8;
