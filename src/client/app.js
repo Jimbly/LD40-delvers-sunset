@@ -232,7 +232,7 @@ export function main(canvas)
   let total_deaths = 0;
   if (DEBUG) {
     disabil_index = 0;
-    level_index = 2;
+    level_index = 0;
     for (let ii = 1; ii <= disabil_index; ++ii) {
       let dl = disabil_flow[ii];
       for (let jj = 0; jj < dl.add.length; ++jj) {
@@ -1324,17 +1324,17 @@ export function main(canvas)
     font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size3, glov_font.ALIGN.HCENTER,
       game_width, 0, 'Jimb Esser - Dashing Strike Games');
     y += font_size3;
-    font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size3, glov_font.ALIGN.HCENTER,
+    font.drawSizedAligned(glov_font.styleColored(font_style_desc, 0x808080ff), -64, y, Z.UI2, font_size3, glov_font.ALIGN.HCENTER,
       game_width, 0, 'Ludum Dare #40');
     y += font_size3;
-    font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER,
+    font.drawSizedAligned(glov_font.styleColored(font_style_desc, 0x808080ff), -64, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER,
       game_width, 0, 'All code, art, sound, and');
     y += font_size2;
-    font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER,
+    font.drawSizedAligned(glov_font.styleColored(font_style_desc, 0x808080ff), -64, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER,
       game_width, 0, 'music created in 48 hours.');
     y += font_size2;
 
-    y += 80;
+    y += 60;
     font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size3, glov_font.ALIGN.HCENTER,
       game_width, 0, 'A simple platformer gets less simple as you');
     y += font_size3;
@@ -1378,7 +1378,7 @@ export function main(canvas)
     y += font_size2;
 
 
-    y += 100;
+    y += 80;
 
     if (glov_ui.buttonText({
       x: game_width / 2 - glov_ui.button_width / 2 - 64,
@@ -1387,11 +1387,112 @@ export function main(canvas)
     }) || glov_input.keyDownHit(key_codes.SPACE) || glov_input.keyDownHit(key_codes.RETURN) || glov_input.padDownHit(0, pad_codes.A)) {
       playInit();
     }
+    y += glov_ui.button_height + 8;
 
+    if (glov_ui.buttonText({
+      x: game_width / 2 - glov_ui.button_width / 2 - 64,
+      y,
+      text: 'HIGH SCORES'
+    })) {
+      scoresInit();
+    }
   }
 
   function titleInit() {
     game_state = title;
+  }
+
+  function printScore(sc) {
+    let seq = sc.disabil_index + ((sc.level_index === 3) ? 1 : 0);
+    return `${seq === 9 ? 'COMPLETE' : `Sequence ${seq}`}, ${sc.deaths} Deaths`;
+  }
+
+  let scores_edit_box;
+  function scores(dt) {
+    defaultCamera();
+
+    const font_size = TILESIZE * 1.5;
+
+    let y = TILESIZE * 0.5;
+    font_style_title.glow_outer = 7;
+    font.drawSizedAligned(font_style_title, -64, y, Z.UI2, font_size, glov_font.ALIGN.HCENTER,
+      game_width, 0, 'HIGH SCORES');
+    y += font_size + 20;
+
+    const font_size2 = TILESIZE * 0.45;
+    let my_score = score.getScore();
+    let has_score = my_score && (my_score.disabil_index || my_score.level_index === 3);
+    font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER,
+      game_width, 0, 'Your best: ' +
+      (has_score ?  printScore(my_score) : 'None found'));
+    y += font_size2 * 1.5;
+
+    let hs = score.high_scores && score.high_scores.all;
+    if (hs) {
+      if (DEBUG) {
+        let ar = [];
+        for (let ii = 0; ii < 10; ++ii) {
+          for (let jj = 0; jj < hs.length; ++jj) {
+            ar.push(hs[jj]);
+          }
+        }
+        hs = ar;
+      }
+      for (let ii = 0; ii < Math.min(hs.length, 20); ++ii) {
+        let sc = hs[ii];
+
+        font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER,
+          game_width, 0, `#${ii+1}: ${sc.name} - ${printScore(sc.score)}`);
+
+        y += font_size2;
+
+      }
+    }
+
+    // Bottom buttons
+    y = game_height - glov_ui.button_height * 2 - 20;
+    if (has_score) {
+      const pad = 20;
+      let x = game_width / 2 - (glov_ui.button_width + scores_edit_box.w + pad) / 2 - 64;
+      if (scores_edit_box.run({
+        x,
+        y,
+      }) === scores_edit_box.SUBMIT || glov_ui.buttonText({
+        x: x + scores_edit_box.w + 20,
+        y,
+        w: glov_ui.button_width,
+        h: glov_ui.button_height / 2,
+        font_height: glov_ui.font_height / 2,
+        text: 'Update Player Name'
+      })) {
+        // scores_edit_box.text
+        if (scores_edit_box.text) {
+          score.updatePlayerName(scores_edit_box.text);
+        }
+      }
+    }
+
+    y += glov_ui.button_height + 10;
+
+    if (glov_ui.buttonText({
+      x: game_width / 2 - glov_ui.button_width / 2 - 64,
+      y,
+      text: 'MAIN MENU'
+    }) || glov_input.keyDownHit(key_codes.SPACE) || glov_input.keyDownHit(key_codes.RETURN) || glov_input.padDownHit(0, pad_codes.A)) {
+      titleInit();
+    }
+  }
+
+  function scoresInit() {
+    scores_edit_box = glov_ui.createEditBox({
+      x: 300,
+      y: 100,
+      w: 200,
+    });
+    scores_edit_box.setText(score.player_name);
+
+    score.updateHighScores();
+    game_state = scores;
   }
 
   function loading() {
@@ -1400,10 +1501,11 @@ export function main(canvas)
     if (!load_count) {
       //endOfSetInit();
       if (DEBUG) {
-        score.updateHighScores(function () {
-          have_scores = true;
-        });
-        playInit();
+        // score.updateHighScores(function () {
+        //   have_scores = true;
+        // });
+        // playInit();
+        scoresInit();
       } else {
         titleInit();
       }

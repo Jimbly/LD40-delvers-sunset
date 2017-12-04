@@ -64,7 +64,7 @@ function refreshScores(/*level, */changed_cb) {
 }
 
 
-function clearScore(/*level, */old_player_name, cb) {
+function clearScore(level, old_player_name, cb) {
   if (!old_player_name) {
     return;
   }
@@ -127,7 +127,8 @@ export function getScore(/*ld*/) {
     if (!ret) {
       return;
     }
-    if (ret && !ret.submitted) {
+    ld.local_score = ret;
+    if (!ret.submitted) {
       saveScore(ld, ret);
     }
     return ret;
