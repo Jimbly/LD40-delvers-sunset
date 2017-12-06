@@ -20,7 +20,7 @@ Z.LETTERBOX = 200;
 const game_width = 1280;
 const game_height = 960;
 
-const COMPO_VERSION = true;
+const COMPO_VERSION = location.toString().indexOf('compo=1') !== -1;
 
 export function main(canvas)
 {
