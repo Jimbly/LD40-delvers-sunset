@@ -435,6 +435,7 @@ class GlovFont {
     if (text === null || text === undefined) {
       text = '(null)';
     }
+    this.applyStyle(style);
     let num_lines = this.wrapLinesScaled(w, indent, xsc, text, (xoffs, linenum, word) => {
       let y2 = y + this.font_info.font_size * ysc * linenum;
       let x2 = x + xoffs;

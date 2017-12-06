@@ -422,15 +422,16 @@ class GlovUI {
     let x = x0 + pad;
     const y0 = this.modal_y0;
     let y = y0 + pad;
+    let font_height = modal_dialog.font_height || this.font_height;
 
     if (modal_dialog.title) {
-      y += this.font.drawSizedWrapped(this.modal_font_style, x, y, Z.MODAL, text_w, 0, this.font_height * this.modal_title_scale,
+      y += this.font.drawSizedWrapped(this.modal_font_style, x, y, Z.MODAL, text_w, 0, font_height * this.modal_title_scale,
         modal_dialog.title);
       y += pad * 1.5;
     }
 
     if (modal_dialog.text) {
-      y += this.font.drawSizedWrapped(this.modal_font_style, x, y, Z.MODAL, text_w, 0, this.font_height,
+      y += this.font.drawSizedWrapped(this.modal_font_style, x, y, Z.MODAL, text_w, 0, font_height,
         modal_dialog.text);
       y += pad;
     }

@@ -100,6 +100,10 @@ export function updateHighScores(/*level_defs, */changed_cb) {
     for (let ii = 0; ii < level_defs.length; ++ii) {
       refreshScores(/*level_defs[ii].name, */changed_cb);
     }
+  } else {
+    if (changed_cb) {
+      changed_cb();
+    }
   }
 }
 

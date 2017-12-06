@@ -207,15 +207,15 @@ export function main(canvas)
     dead: false,
   };
   let disabil_flow = [
-    { song: 'song1'},
-    { add: ['limp'], remove: [], song: 'song1-slow' },
-    { add: ['vertigo'], remove: [], song: 'song2' },
-    { add: ['paranoia'], remove: ['vertigo'], song: 'song2-wahwah' },
-    { add: ['color_blindness'], remove: [], song: 'song2-diffuse' },
-    { add: ['nearsighted'], remove: [], song: 'song1' },
-    { add: ['amnesia', 'deaf'], remove: [], song: 'song1-deaf' },
-    { add: ['blindness'], remove: ['deaf', 'nearsighted', 'color_blindness', 'paranoia' ], song: 'song1' },
-    { add: ['deaf'], remove: [], song: 'song1-deaf' },
+    { song: 'song1', hint: 'TIP: If you can\'t beat this, maybe platformers aren\'t your thing.'},
+    { add: ['limp'], remove: [], song: 'song1-slow', hint: 'TIP: Jump from your good leg, listen for the soft footstep when walking, or don\'t walk at all and just jump!' },
+    { add: ['vertigo'], remove: [], song: 'song2', hint: 'TIP: Close your eyes after you jump! Or, skip and it will go away anyway.' },
+    { add: ['paranoia'], remove: ['vertigo'], song: 'song2-wahwah', hint: 'TIP: You\'re seeing things' },
+    { add: ['color_blindness'], remove: [], song: 'song2-diffuse', hint: 'TIP: Remember the last time through.' },
+    { add: ['nearsighted'], remove: [], song: 'song1', hint: 'TIP: You can do this!' },
+    { add: ['amnesia', 'deaf'], remove: [], song: 'song1-deaf', hint: 'TIP: Figure out what level you\'re on first.' },
+    { add: ['blindness'], remove: ['deaf', 'nearsighted', 'color_blindness', 'paranoia' ], song: 'song1', hint: 'TIP: Figure out what level you\'re on first.' },
+    { add: ['deaf'], remove: [], song: 'song1-deaf', hint: 'TIP: Muscle memory.' },
   ];
   const disabil_list = [
     { key : 'limp', name: 'Unipedalism' },
@@ -230,9 +230,12 @@ export function main(canvas)
   ];
 
   let total_deaths = 0;
+  let deaths_per_level = 0;
+  let scores_disabled = false;
   if (DEBUG) {
     disabil_index = 0;
-    level_index = 0;
+    level_index = 2;
+    deaths_per_level = 2;
     for (let ii = 1; ii <= disabil_index; ++ii) {
       let dl = disabil_flow[ii];
       for (let jj = 0; jj < dl.add.length; ++jj) {
@@ -643,6 +646,7 @@ export function main(canvas)
           playSound('death_spike');
           character.dead = 2;
           ++total_deaths;
+          ++deaths_per_level;
           if (d[4] !== -1) {
             character.v[0] = 0;
           }
@@ -660,6 +664,7 @@ export function main(canvas)
             playSound('death_laser');
             character.dead = 1;
             ++total_deaths;
+            ++deaths_per_level;
           }
         }
       }
@@ -673,6 +678,7 @@ export function main(canvas)
             playSound('death_beam');
             character.dead = 3;
             ++total_deaths;
+            ++deaths_per_level;
           }
         }
       }
@@ -688,9 +694,15 @@ export function main(canvas)
       if (collide(level.exit)) {
         character.exited = true;
         have_scores = false;
-        score.setScore(disabil_index, level_index, total_deaths, function () {
-          have_scores = true;
-        });
+        if (scores_disabled) {
+          score.updateHighScores(function () {
+            have_scores = true;
+          });
+        } else {
+          score.setScore(disabil_index, level_index, total_deaths, function () {
+            have_scores = true;
+          });
+        }
         playSound('victory');
         level_countdown = COUNTDOWN_SUCCESS;
         if (laser_sound) {
@@ -764,6 +776,16 @@ export function main(canvas)
   });
   const new_font_style = glov_font.style(null, {
     color: 0xFFFF00ff,
+    outline_width: 2.0,
+    outline_color: 0x000000ff,
+    glow_xoffs: 0,
+    glow_yoffs: 0,
+    glow_inner: 1,
+    glow_outer: 5,
+    glow_color: 0xFFFFFFff,
+  });
+  const tip_style = glov_font.style(null, {
+    color: 0x80FF80ff,
     outline_width: 2.0,
     outline_color: 0x000000ff,
     glow_xoffs: 0,
@@ -912,6 +934,8 @@ export function main(canvas)
       [glov_camera.x1() - glov_camera.x0(), glov_camera.y1() - glov_camera.y0()]);
   }
 
+  let was_skipped = false;
+
   function play(dt) {
     defaultCamera();
 
@@ -931,6 +955,52 @@ export function main(canvas)
         [-(glov_camera.x1() - game_width + 64), glov_camera.y1() - glov_camera.y0()]);
     }
 
+    if (level_countdown && character.exited || deaths_per_level < 1 || !scores_disabled && deaths_per_level < 2) {
+      // nothing
+    } else if (scores_disabled && deaths_per_level === 1 || !scores_disabled && deaths_per_level === 2) {
+      font.drawSizedWrapped(tip_style, glov_camera.x1() - 25 - 400, glov_camera.y1() - 45 - 100, Z.UI2,
+        400, 40, glov_ui.font_height / 2,
+        disabil_flow[disabil_index].hint);
+    } else {
+      if (glov_ui.buttonText({
+        x: glov_camera.x1() - 320 - 25,
+        y: glov_camera.y1() - 48 - 25,
+        font_height: 24,
+        h: 48,
+        w: 320,
+        text: 'Too hard?  Skip level',
+        z: Z.UI2})
+      ) {
+        let text = 'Skip to the next set of ailments to get a feeling for what ' +
+          'the rest of the game is like.\n\n' +
+          'Note: skipping levels disables high score tracking.\n\n' +
+          disabil_flow[disabil_index].hint;
+
+        glov_ui.modalDialog({
+          title: 'Platforming skills not good enough?',
+          text,
+          font_height: 24,
+          buttons: {
+            'SKIP': function () {
+              scores_disabled = true;
+              character.dead = 0;
+              character.exited = true;
+              have_scores = false;
+              score.updateHighScores(function () {
+                have_scores = true;
+              });
+              if (level_index === 3) {
+                level_countdown = COUNTDOWN_SUCCESS - 100;
+              } else {
+                was_skipped = true;
+                level_countdown = 1;
+              }
+            },
+            'RETRY': null, // no callback
+          },
+        });
+      }
+    }
 
     if (glov_input.keyDownHit(key_codes.R) || glov_input.padDownHit(0, pad_codes.Y)) {
       playInit();
@@ -1123,6 +1193,10 @@ export function main(canvas)
         } else {
           if (character.exited) {
             level_index++;
+            if (!was_skipped) {
+              deaths_per_level = 0;
+            }
+            was_skipped = false;
           }
           playInit();
         }
@@ -1215,6 +1289,7 @@ export function main(canvas)
         text: 'CONTINUE'
       }) || glov_input.keyDownHit(key_codes.SPACE) || glov_input.keyDownHit(key_codes.RETURN) || glov_input.padDownHit(0, pad_codes.A)) {
         level_index = 0;
+        deaths_per_level = 0;
         playInit();
       }
       y += glov_ui.button_height + 8;
@@ -1282,11 +1357,13 @@ export function main(canvas)
         }
       }
       font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
-        game_width, 0, `Only ${Math.ceil(same / total * 100)}% of players also won!`);
+        game_width, 0, `Only ${Math.ceil(same / total * 100)}% of players${scores_disabled?'':' also'} won!`);
       y += font_size2;
-      font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
-        game_width, 0, `${Math.ceil(better / same * 100)}% of those died fewer times than you`);
-      y += font_size2;
+      if (!scores_disabled) {
+        font.drawSizedAligned(font_style_seq_progress, -64, y, Z.UI2, font_size2*0.8, glov_font.ALIGN.HCENTER,
+          game_width, 0, `${Math.ceil(better / same * 100)}% of those died fewer times than you`);
+        y += font_size2;
+      }
 
       y += 20;
 
@@ -1408,6 +1485,8 @@ export function main(canvas)
       disabil_index = level_index = 0;
       disabil = {};
       total_deaths = 0;
+      deaths_per_level = 0;
+      scores_disabled = false;
       playInit();
     }
     y += glov_ui.button_height + 8;
@@ -1527,10 +1606,7 @@ export function main(canvas)
     $('#loading').text(`Loading (${load_count})...`);
     if (!load_count) {
       //endOfSetInit();
-      if (DEBUG && false) {
-        score.updateHighScores(function () {
-          have_scores = true;
-        });
+      if (DEBUG) {
         playInit();
         // scoresInit();
       } else {
