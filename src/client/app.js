@@ -20,6 +20,8 @@ Z.LETTERBOX = 200;
 const game_width = 1280;
 const game_height = 960;
 
+const COMPO_VERSION = true;
+
 export function main(canvas)
 {
   const glov_engine = require('./glov/engine.js');
@@ -957,7 +959,7 @@ export function main(canvas)
 
     if (level_countdown && character.exited || deaths_per_level < 1 || !scores_disabled && deaths_per_level < 2) {
       // nothing
-    } else if (scores_disabled && deaths_per_level === 1 || !scores_disabled && deaths_per_level === 2) {
+    } else if (!COMPO_VERSION && (scores_disabled && deaths_per_level === 1 || !scores_disabled && deaths_per_level === 2)) {
       font.drawSizedWrapped(tip_style, glov_camera.x1() - 25 - 400, glov_camera.y1() - 45 - 100, Z.UI2,
         400, 40, glov_ui.font_height / 2,
         disabil_flow[disabil_index].hint);
