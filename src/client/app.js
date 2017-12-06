@@ -1603,9 +1603,14 @@ export function main(canvas)
     game_state = scores;
   }
 
+  let fake_load = 0;
+  if (DEBUG) {
+    //fake_load = 10;
+  }
+
   function loading() {
-    let load_count = glov_sprite.loading() + sound_manager.loading();
-    $('#loading').text(`Loading (${load_count})...`);
+    let load_count = glov_sprite.loading() + sound_manager.loading() + fake_load;
+    $('#loading_text').text(`Loading (${load_count})...`);
     if (!load_count) {
       //endOfSetInit();
       if (DEBUG) {
@@ -1620,6 +1625,7 @@ export function main(canvas)
   function loadingInit() {
     initGraphics();
     $('.screen').hide();
+    $('#loading').show();
     game_state = loading;
     loading();
   }
