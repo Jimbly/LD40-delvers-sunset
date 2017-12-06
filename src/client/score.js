@@ -45,7 +45,7 @@ export function formatName(score) {
   return score.name;
 }
 
-let num_highscores = 20;
+let num_highscores = 20000;
 let score_update_time = 0;
 export let high_scores = {};
 const level = 'all';
