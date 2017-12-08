@@ -27,7 +27,6 @@ export function main(canvas)
   const glov_engine = require('./glov/engine.js');
   const glov_font = require('./glov/font.js');
   const score = require('./score.js');
-  score.getScore();
   const util = require('./glov/util.js');
 
   glov_engine.startup({
@@ -89,6 +88,24 @@ export function main(canvas)
   const COUNTDOWN_SUCCESS = 1500;
   let COUNTDOWN_FAIL = 1500;
 
+
+  // higher score is "better"
+  const score_mod1 = 10000;
+  const score_mod2 = 100;
+  const deaths_inv = 9999;
+  function scoreToValue(score) {
+    return score.disabil_index * score_mod1 * score_mod2 + score.level_index * score_mod1 + (deaths_inv - score.deaths);
+  }
+  function valueToScore(score) {
+    let deaths = deaths_inv - score % score_mod1;
+    score = Math.floor(score / score_mod1);
+    let level_index = score % score_mod2;
+    score = Math.floor(score / score_mod2);
+    let disabil_index = score;
+    return { disabil_index, level_index, deaths };
+  }
+  score.init(scoreToValue, valueToScore, { all: { name: 'all' }}, 'LD40');
+  score.getScore('all');
 
   function initGraphics() {
     if (sprites.white) {
@@ -236,7 +253,7 @@ export function main(canvas)
   let scores_disabled = false;
   if (DEBUG) {
     disabil_index = 0;
-    level_index = 2;
+    level_index = 0;
     deaths_per_level = 2;
     for (let ii = 1; ii <= disabil_index; ++ii) {
       let dl = disabil_flow[ii];
@@ -701,7 +718,7 @@ export function main(canvas)
             have_scores = true;
           });
         } else {
-          score.setScore(disabil_index, level_index, total_deaths, function () {
+          score.setScore('all', { disabil_index, level_index, deaths: total_deaths }, function () {
             have_scores = true;
           });
         }
@@ -960,7 +977,7 @@ export function main(canvas)
     if (level_countdown && character.exited || deaths_per_level < 1 || !scores_disabled && deaths_per_level < 2) {
       // nothing
     } else if (!COMPO_VERSION && (scores_disabled && deaths_per_level === 1 || !scores_disabled && deaths_per_level === 2)) {
-      font.drawSizedWrapped(tip_style, glov_camera.x1() - 25 - 400, glov_camera.y1() - 45 - 100, Z.UI2,
+      font.drawSizedWrapped(tip_style, glov_camera.x1() - 25 - 400, glov_camera.y1() - 45 - 100, Z.LETTERBOX + 1,
         400, 40, glov_ui.font_height / 2,
         disabil_flow[disabil_index].hint);
     } else {
@@ -1503,6 +1520,7 @@ export function main(canvas)
   }
 
   function titleInit() {
+    $('.screen').hide();
     startMusic(true);
     game_state = title;
   }
@@ -1525,7 +1543,7 @@ export function main(canvas)
     y += font_size + 20;
 
     const font_size2 = TILESIZE * 0.45;
-    let my_score = score.getScore();
+    let my_score = score.getScore('all');
     let has_score = my_score && (my_score.disabil_index || my_score.level_index === 3);
     font.drawSizedAligned(font_style_desc, -64, y, Z.UI2, font_size2, glov_font.ALIGN.HCENTER,
       game_width, 0, 'Your best: ' +
@@ -1612,9 +1630,11 @@ export function main(canvas)
     let load_count = glov_sprite.loading() + sound_manager.loading() + fake_load;
     $('#loading_text').text(`Loading (${load_count})...`);
     if (!load_count) {
+      $('#loading').hide();
       //endOfSetInit();
       if (DEBUG) {
-        playInit();
+        titleInit();
+        // playInit();
         // scoresInit();
       } else {
         titleInit();
