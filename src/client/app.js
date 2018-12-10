@@ -50,7 +50,7 @@ export function main(canvas)
 
   const DEBUG = (location.host.indexOf('localhost') !== -1);
 
-  if (DEBUG) {
+  if (DEBUG && false) {
     sound_manager.sound_on = sound_manager.music_on = false;
   }
 
